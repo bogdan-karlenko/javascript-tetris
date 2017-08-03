@@ -2,11 +2,89 @@ function draw() {
         var main = document.getElementById("main-ttrs");
         if (main.getContext) {
         	var ctx = main.getContext('2d');
-        	ctx.fillStyle = 'rgb(200, 0, 0)';
-        	ctx.fillRect(10, 10, 50, 50);
+        	ctx.canvas.width = mainWidth;
+        	ctx.canvas.height = mainHeight;
+        	drawGrid(ctx);
+        	drawPieceAt(1,1, pickRandomPiece(pieces), ctx);
         }
     }
 
+function drawGrid(ctx) {
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+		ctx.beginPath();
+	for (i=0; i<mainWidth; i++) {
+		ctx.moveTo(i*dotSize, 0);
+		ctx.lineTo(i*dotSize, mainHeight);
+	};
+		ctx.stroke();
+
+	ctx.beginPath();
+	for (i=0; i<mainHeight; i++) {
+		ctx.moveTo(0, i*dotSize);
+		ctx.lineTo(mainWidth, i*dotSize);
+	};
+		ctx.stroke();
+}
+
+function drawPieceAt(x, y, piece, ctx) {
+		     if (piece.name == "i") ctx.fillStyle = "cyan";
+		else if (piece.name == "j") ctx.fillStyle = "blue";
+		else if (piece.name == "l") ctx.fillStyle = "orange";
+		else if (piece.name == "o") ctx.fillStyle = "yellow";			
+		else if (piece.name == "s") ctx.fillStyle = "green";
+		else if (piece.name == "t") ctx.fillStyle = "purple";
+		else if (piece.name == "z") ctx.fillStyle = "red";
+			else ctx.fillStyle = "black";
+
+
+	for (i=0; i<piece.body.length; i++) {
+		for (j=0; j<piece.body[i].length; j++) {
+			if (piece.body[i][j] != 0) {
+				roundRect(ctx, (i+x)*dotSize, (j+y)*dotSize, dotSize, dotSize, dotSize/4, true, true);
+				//ctx.strokeRect((i+x)*dotSize, (j+y)*dotSize, dotSize, dotSize);
+			}
+		}
+	}
+}
+
+function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+  if (typeof stroke == 'undefined') {
+    stroke = true;
+  }
+  if (typeof radius === 'undefined') {
+    radius = 5;
+  }
+  if (typeof radius === 'number') {
+    radius = {tl: radius, tr: radius, br: radius, bl: radius};
+  } else {
+    var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+    for (var side in defaultRadius) {
+      radius[side] = radius[side] || defaultRadius[side];
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + radius.tl, y);
+  ctx.lineTo(x + width - radius.tr, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+  ctx.lineTo(x + width, y + height - radius.br);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+  ctx.lineTo(x + radius.bl, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+  ctx.lineTo(x, y + radius.tl);
+  ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+  ctx.closePath();
+  if (fill) {
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.stroke();
+  }
+
+}
+
+var dotSize = 20;
+var mainWidth = 10*dotSize;
+var mainHeight = 20*dotSize;
 var pieces = [{name:"i", rotStage:0, body:["0#00",
 										   "0#00",
 										   "0#00",
@@ -122,4 +200,3 @@ var pieces = [{name:"i", rotStage:0, body:["0#00",
 function pickRandomPiece(pieces) {
 return pieces[Math.floor(Math.random() * (pieces.length-1))]; 
 }
-console.log(pickRandomPiece(pieces))
