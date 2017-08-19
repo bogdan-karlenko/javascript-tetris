@@ -9,14 +9,34 @@ function draw() {
         	var ctx = main.getContext('2d');
         	ctx.canvas.width = mainWidth;
         	ctx.canvas.height = mainHeight;
-        	drawGrid(ctx);
+        	reload(ctx);
         	var currentPiece = pickRandomPiece(pieces);
         	drawPieceAt(ctx, 1, 1, currentPiece);
-//for some reason this doesn't work. Will try to find out later.
-        	window.addEventListener("click", drawPieceAt(ctx, 1, 1, rotatePiece(currentPiece)), false);
+
+			document.addEventListener("keydown", function(event) {
+				document.getElementById("txt1").value=event.key;
+				currentPiece = rotatePiece(currentPiece);
+				reload(ctx);
+				drawPieceAt(ctx, 1, 1, currentPiece);
+			}, false);
+        	//document.addEventListener("keydown", drawPieceAt(ctx, 1, 1, rotatePiece(currentPiece)), false);
         }
     }
 
+function reload(ctx) {
+	ctx.fillStyle = 'white';
+	ctx.fillRect(0, 0, mainWidth, mainHeight);
+	drawGrid(ctx);
+}
+
+//This function is returning piece with specified name and rotStage
+function findPiece(name, rotStage) {
+	for (piece in pieces) {
+		if (pieces[piece].name == name && pieces[piece].rotStage == rotStage) {
+			return pieces[piece];
+		}
+	}
+} 
 //This function is drawing a grid with specified dot size in pixels from dotSize variable.
 function drawGrid(ctx) {
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
@@ -55,8 +75,8 @@ return pieces[Math.floor(Math.random() * (pieces.length-1))];
 
 //This function is rotating current piece one step forward
 function rotatePiece(piece) {
-	if (piece.rotStage === 3) {piece.rotStage = 0}
-		else piece.rotStage += 1;
+	if (piece.rotStage === 3) {piece = findPiece(piece.name, 0);}
+		else piece = findPiece(piece.name, piece.rotStage + 1);
 	return piece;
 }
 
