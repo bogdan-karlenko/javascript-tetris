@@ -19,7 +19,6 @@ function draw() {
 				reload(ctx);
 				drawPieceAt(ctx, 1, 1, currentPiece);
 			}, false);
-        	//document.addEventListener("keydown", drawPieceAt(ctx, 1, 1, rotatePiece(currentPiece)), false);
         }
     }
 
@@ -123,7 +122,7 @@ var pieces = [{name:"i", rotStage:0, color:"cyan", body:["0#00",
 			  							   "0000",
 			  							   "####",
 			  							   "0000"]},
-			  {name:"j", rotStage:0, color:"blue", color:"", body:["0#00",
+			  {name:"j", rotStage:0, color:"blue", body:["0#00",
 										   "0#00",
 										   "##00",
 										   "0000"]},
