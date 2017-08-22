@@ -64,7 +64,7 @@ function draw() {
 		setInterval(function() {
 			currentPiece.y += 1;
 			reload(ctx);
-			drawPiece(ctx, currentPiece.x, currentPiece.y, currentPiece);
+			drawPiece(ctx, currentPiece);
 		}, step * 1000);
 	}
 }
