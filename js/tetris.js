@@ -1,7 +1,7 @@
 var dotSize = 20;
-var mainWidth = 10 * dotSize;
-var mainHeight = 20 * dotSize;
-var step = 0.5;
+var mainWidth = 10;
+var mainHeight = 20;
+var step = 1;
 var KEY = {
 	ESC: 27,
 	SPACE: 32,
@@ -12,65 +12,123 @@ var KEY = {
 	W: 87,
 	A: 65,
 	S: 83,
-	D: 68
+	D: 68,
 };
 
-
-
-//This function runs when current page is loaded
+//	This function runs when current page is loaded
 function draw() {
 	var main = document.getElementById("main-ttrs");
 	if (main.getContext) {
-		var ctx = main.getContext('2d');
-		ctx.canvas.width = mainWidth;
-		ctx.canvas.height = mainHeight;
+		ctx = main.getContext("2d");
+		ctx.canvas.width = mainWidth * dotSize;
+		ctx.canvas.height = mainHeight * dotSize;
 		pieces = setPieces(pieces);
 		reload(ctx);
-		var currentPiece = pickRandomPiece(pieces);
+		var currentPiece = pickRandomPiece();
 		drawPiece(ctx, currentPiece);
-		//while (y<mainHeight) {
-		document.addEventListener("keydown", function(event) {
-			event.preventDefault();
-			switch (event.keyCode) {
-				case KEY.A:
-				case KEY.LEFT:
-					movePiece("left", currentPiece);
-					reload(ctx);
-					drawPiece(ctx, currentPiece);
-					break;
-				case KEY.D:
-				case KEY.RIGHT:
-					movePiece("right", currentPiece);
-					reload(ctx);
-					drawPiece(ctx, currentPiece);
-					break;
-				case KEY.W:
-				case KEY.UP:
-					currentPiece = rotatePiece(currentPiece);
-					reload(ctx);
-					drawPiece(ctx, currentPiece);
-					break;
-				case KEY.S:
-				case KEY.DOWN:
-					movePiece("down", currentPiece);
-					reload(ctx);
-					drawPiece(ctx, currentPiece);
-					break;
-			}
-
-
-		}, false);
 
 		setInterval(function() {
-			currentPiece.y += 1;
+			dropPiece(ctx, currentPiece);
+		}, step * 1000);
+
+		document.addEventListener("keydown", function(event) {
+			keydownActions(event, ctx, currentPiece);
+		}, false);
+	}
+}
+
+function dropPiece(ctx, piece) {
+	piece.y += 1;
+	if (!checkEdge("down", piece)) {
+		piece.y -= 1;
+	}
+	reload(ctx);
+	drawPiece(ctx, piece);
+	//	currentPiece = piece;
+}
+
+function keydownActions(event, ctx, currentPiece) {
+	event.preventDefault();
+	switch (event.keyCode) {
+		case KEY.A:
+		case KEY.LEFT:
+			movePiece("left", currentPiece);
 			reload(ctx);
 			drawPiece(ctx, currentPiece);
-		}, step * 1000);
+			break;
+		case KEY.D:
+		case KEY.RIGHT:
+			movePiece("right", currentPiece);
+			reload(ctx);
+			drawPiece(ctx, currentPiece);
+			break;
+		case KEY.W:
+		case KEY.UP:
+			rotatePiece(currentPiece);
+			reload(ctx);
+			drawPiece(ctx, currentPiece);
+			break;
+		case KEY.S:
+		case KEY.DOWN:
+			movePiece("down", currentPiece);
+			reload(ctx);
+			drawPiece(ctx, currentPiece);
+			break;
 	}
+}
+
+function checkAllEdges(piece) {
+	return (checkEdge("left", piece) && checkEdge("right", piece) && checkEdge("down", piece));
+}
+
+function checkEdge(dir, piece) {
+	switch (dir) {
+		case "left":
+			if ((piece.x + piece.edges.left) >= 0) return true;
+			else return false;
+			break;
+		case "right":
+			if ((piece.x + piece.edges.right) < mainWidth) return true;
+			else return false;
+			break;
+		case "down":
+			if ((piece.y + piece.edges.lower) < mainHeight) return true;
+			else return false;
+			break;
+	}
+}
+
+function findEdges(piece) {
+	var edges = {
+		upper: null,
+		lower: 0,
+		right: 0,
+		left: null,
+	};
+	for (i = 0; i < piece.body.length; i++) {
+		for (j = 0; j < piece.body[i].length; j++) {
+			if (piece.body[i][j] != 0) {
+				if (edges.upper == null) {
+					edges.upper = Number(i);
+				}
+				if (edges.lower < i) {
+					edges.lower = Number(i);
+				}
+				if (edges.right < j) {
+					edges.right = j;
+				}
+				if (edges.left == null || edges.left > j) {
+					edges.left = j;
+				}
+			}
+		}
+	}
+	return edges;
 }
 
 function setPieces(pieces) {
 	for (piece in pieces) {
+		pieces[piece].edges = findEdges(pieces[piece]);
 		switch (pieces[piece].name) {
 			case "i":
 				pieces[piece].size = 4;
@@ -106,52 +164,70 @@ function setPieces(pieces) {
 }
 
 function movePiece(dir, piece) {
+	var newPiece = {};
+	newPiece.x = piece.x;
+	newPiece.y = piece.y;
+	newPiece.edges = {};
+	newPiece.edges.left = piece.edges.left;
+	newPiece.edges.right = piece.edges.right;
+	newPiece.edges.lower = piece.edges.lower;
 	switch (dir) {
 		case "left":
-			piece.x -= 1;
+			newPiece.x -= 1;
+			if (checkEdge(dir, newPiece)) {
+				piece.x -= 1;
+			}
 			break;
 		case "right":
-			piece.x += 1;
+			newPiece.x += 1;
+			if (checkEdge(dir, newPiece)) {
+				piece.x += 1;
+			}
 			break;
 		case "down":
-			piece.y += 1;
+			newPiece.y += 1;
+			if (checkEdge(dir, newPiece)) {
+				piece.y += 1;
+			}
+			break;
 	}
 }
 
 function reload(ctx) {
-	ctx.fillStyle = 'white';
-	ctx.fillRect(0, 0, mainWidth, mainHeight);
+	ctx.fillStyle = "white";
+	ctx.fillRect(0, 0, mainWidth * dotSize, mainHeight * dotSize);
 	drawGrid(ctx);
 }
 
-//This function is returning piece with specified name and rotStage
+//	This function is returning piece with specified name and rotStage
 function findPiece(name, rotStage) {
-	for (piece in pieces) {
-		if (pieces[piece].name == name && pieces[piece].rotStage == rotStage) {
-			return pieces[piece];
+	for (var i = 0; i < pieces.length; i++) {
+		if (pieces[i].name === name && pieces[i].rotStage === rotStage) {
+			return pieces[i];
 		}
 	}
 }
-//This function is drawing a grid with specified dot size in pixels from dotSize variable.
+
+//	This function is drawing a grid with specified dot size in pixels from dotSize variable.
 function drawGrid(ctx) {
-	ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-	//horisontal lines
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+	//	horisontal lines
 	ctx.beginPath();
-	for (i = 0; i < mainWidth; i++) {
+	for (i = 0; i < mainWidth * dotSize; i++) {
 		ctx.moveTo(i * dotSize, 0);
-		ctx.lineTo(i * dotSize, mainHeight);
+		ctx.lineTo(i * dotSize, mainHeight * dotSize);
 	};
 	ctx.stroke();
-	//vertical lines
+	//	vertical lines
 	ctx.beginPath();
-	for (i = 0; i < mainHeight; i++) {
+	for (i = 0; i < mainHeight * dotSize; i++) {
 		ctx.moveTo(0, i * dotSize);
-		ctx.lineTo(mainWidth, i * dotSize);
+		ctx.lineTo(mainWidth * dotSize, i * dotSize);
 	};
 	ctx.stroke();
 }
 
-//This function is drawing chosen piece starting at (x,y)
+//	This function is drawing chosen piece starting at (x,y)
 function drawPiece(ctx, piece) {
 	ctx.fillStyle = piece.color;
 	for (i = 0; i < piece.body.length; i++) {
@@ -163,49 +239,74 @@ function drawPiece(ctx, piece) {
 	}
 }
 
-//This function is picking random piece from pieces
-function pickRandomPiece(pieces) {
-	var randomPiece = pieces[Math.floor(Math.random() * (pieces.length - 1))];
-	randomPiece.x = Math.floor(mainWidth / dotSize / 2);
-	randomPiece.y = 0;
-	return randomPiece
-}
-
-//This function is rotating current piece one step forward
-function rotatePiece(piece) {
-	var x = piece.x,
-		y = piece.y;
-	if (piece.rotStage === 3) {
-		piece = findPiece(piece.name, 0);
-	} else {
-		piece = findPiece(piece.name, piece.rotStage + 1);
+//	This function is picking random piece from pieces
+function pickRandomPiece() {
+	var randomPiece = {};
+	var idx = Math.floor(Math.random() * (pieces.length - 1));
+	randomPiece.name = pieces[idx].name;
+	randomPiece.body = [];
+	for (var i = 0; i < pieces[idx].body.length; i++) {
+		randomPiece.body[i] = pieces[idx].body[i];
 	}
-	piece.x = x;
-	piece.y = y;
-	return piece;
+	randomPiece.edges = {};
+	for (var i in pieces[idx].edges) {
+		if (pieces[idx].edges.hasOwnProperty(i)) {
+			randomPiece.edges[i] = pieces[idx].edges[i];
+		}
+	}
+	randomPiece.rotStage = pieces[idx].rotStage;
+	randomPiece.color = pieces[idx].color;
+	randomPiece.x = Math.floor(mainWidth / 2 - 2);
+	randomPiece.y = 0 - randomPiece.edges.upper;
+	return randomPiece;
 }
 
-//This function is drawing rectangle with rounded corners starting at (x,y)
+//	This function is rotating current piece one step forward
+function rotatePiece(piece) {
+	var newPiece = null;
+	if (piece.rotStage === 3) {
+		newPiece = findPiece(piece.name, 0);
+	} else {
+		newPiece = findPiece(piece.name, piece.rotStage + 1);
+	}
+	newPiece.x = piece.x;
+	newPiece.y = piece.y;
+	if (!checkAllEdges(newPiece)) {
+		return;
+	}
+	piece.rotStage = newPiece.rotStage;
+	piece.body = [];
+	for (var i = 0; i < newPiece.body.length; i++) {
+		piece.body[i] = newPiece.body[i];
+	}
+	piece.edges = {};
+	piece.edges.upper = newPiece.edges.upper;
+	piece.edges.lower = newPiece.edges.lower;
+	piece.edges.left = newPiece.edges.left;
+	piece.edges.right = newPiece.edges.right;
+}
+
+//	This function is drawing rectangle with rounded corners starting at (x,y)
 function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-	if (typeof stroke == 'undefined') {
+	if (typeof stroke == "undefined") {
 		stroke = true;
 	}
-	if (typeof radius === 'undefined') {
+	if (typeof radius === "undefined") {
 		radius = 5;
 	}
-	if (typeof radius === 'number') {
+	if (typeof radius === "number") {
 		radius = {
 			tl: radius,
 			tr: radius,
 			br: radius,
-			bl: radius
+			bl: radius,
 		};
 	} else {
 		var defaultRadius = {
 			tl: 0,
 			tr: 0,
 			br: 0,
-			bl: 0
+			bl: 0,
 		};
 		for (var side in defaultRadius) {
 			radius[side] = radius[side] || defaultRadius[side];
@@ -230,15 +331,15 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
 	}
 }
 
-//This is where all the pieces are listed.
+//	This is where all the pieces are listed.
 var pieces = [{
 		name: "i",
 		rotStage: 0,
 		body: ["0#00",
 			"0#00",
 			"0#00",
-			"0#00"
-		]
+			"0#00",
+		],
 	},
 
 	{
@@ -247,8 +348,8 @@ var pieces = [{
 		body: ["0000",
 			"####",
 			"0000",
-			"0000"
-		]
+			"0000",
+		],
 	},
 
 	{
@@ -257,8 +358,8 @@ var pieces = [{
 		body: ["00#0",
 			"00#0",
 			"00#0",
-			"00#0"
-		]
+			"00#0",
+		],
 	},
 
 	{
@@ -267,8 +368,8 @@ var pieces = [{
 		body: ["0000",
 			"0000",
 			"####",
-			"0000"
-		]
+			"0000",
+		],
 	},
 
 	{
@@ -276,8 +377,8 @@ var pieces = [{
 		rotStage: 0,
 		body: ["0#0",
 			"0#0",
-			"##0"
-		]
+			"##0",
+		],
 	},
 
 	{
@@ -285,8 +386,8 @@ var pieces = [{
 		rotStage: 1,
 		body: ["#00",
 			"###",
-			"000"
-		]
+			"000",
+		],
 	},
 
 	{
@@ -294,8 +395,8 @@ var pieces = [{
 		rotStage: 2,
 		body: ["0##",
 			"0#0",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -303,8 +404,8 @@ var pieces = [{
 		rotStage: 3,
 		body: ["000",
 			"###",
-			"00#"
-		]
+			"00#",
+		],
 	},
 
 	{
@@ -312,8 +413,8 @@ var pieces = [{
 		rotStage: 0,
 		body: ["0#0",
 			"0#0",
-			"0##"
-		]
+			"0##",
+		],
 	},
 
 	{
@@ -321,8 +422,8 @@ var pieces = [{
 		rotStage: 1,
 		body: ["000",
 			"###",
-			"#00"
-		]
+			"#00",
+		],
 	},
 
 	{
@@ -330,8 +431,8 @@ var pieces = [{
 		rotStage: 2,
 		body: ["##0",
 			"0#0",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -339,40 +440,40 @@ var pieces = [{
 		rotStage: 3,
 		body: ["00#",
 			"###",
-			"000"
-		]
+			"000",
+		],
 	},
 
 	{
 		name: "o",
 		rotStage: 0,
 		body: ["##",
-			"##"
-		]
+			"##",
+		],
 	},
 
 	{
 		name: "o",
 		rotStage: 1,
 		body: ["##",
-			"##"
-		]
+			"##",
+		],
 	},
 
 	{
 		name: "o",
 		rotStage: 2,
 		body: ["##",
-			"##"
-		]
+			"##",
+		],
 	},
 
 	{
 		name: "o",
 		rotStage: 3,
 		body: ["##",
-			"##"
-		]
+			"##",
+		],
 	},
 
 	{
@@ -380,8 +481,8 @@ var pieces = [{
 		rotStage: 0,
 		body: ["000",
 			"0##",
-			"##0"
-		]
+			"##0",
+		],
 	},
 
 	{
@@ -389,8 +490,8 @@ var pieces = [{
 		rotStage: 1,
 		body: ["#00",
 			"##0",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -398,8 +499,8 @@ var pieces = [{
 		rotStage: 2,
 		body: ["0##",
 			"##0",
-			"000"
-		]
+			"000",
+		],
 	},
 
 	{
@@ -407,8 +508,8 @@ var pieces = [{
 		rotStage: 3,
 		body: ["0#0",
 			"0##",
-			"00#"
-		]
+			"00#",
+		],
 	},
 
 	{
@@ -416,8 +517,8 @@ var pieces = [{
 		rotStage: 0,
 		body: ["000",
 			"###",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -425,8 +526,8 @@ var pieces = [{
 		rotStage: 1,
 		body: ["0#0",
 			"##0",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -434,8 +535,8 @@ var pieces = [{
 		rotStage: 2,
 		body: ["0#0",
 			"###",
-			"000"
-		]
+			"000",
+		],
 	},
 
 	{
@@ -443,8 +544,8 @@ var pieces = [{
 		rotStage: 3,
 		body: ["0#0",
 			"0##",
-			"0#0"
-		]
+			"0#0",
+		],
 	},
 
 	{
@@ -452,8 +553,8 @@ var pieces = [{
 		rotStage: 0,
 		body: ["000",
 			"##0",
-			"0##"
-		]
+			"0##",
+		],
 	},
 
 	{
@@ -461,8 +562,8 @@ var pieces = [{
 		rotStage: 1,
 		body: ["0#0",
 			"##0",
-			"#00"
-		]
+			"#00",
+		],
 	},
 
 	{
@@ -470,8 +571,8 @@ var pieces = [{
 		rotStage: 2,
 		body: ["##0",
 			"0##",
-			"000"
-		]
+			"000",
+		],
 	},
 
 	{
@@ -479,7 +580,7 @@ var pieces = [{
 		rotStage: 3,
 		body: ["00#",
 			"0##",
-			"0#0"
-		]
-	}
+			"0#0",
+		],
+	},
 ];
