@@ -2,6 +2,8 @@ var dotSize = 20;
 var mainWidth = 10;
 var mainHeight = 20;
 var step = 1;
+var field = [];
+var endOfCycle = false;
 var KEY = {
 	ESC: 27,
 	SPACE: 32,
@@ -23,10 +25,20 @@ function draw() {
 		ctx.canvas.width = mainWidth * dotSize;
 		ctx.canvas.height = mainHeight * dotSize;
 		pieces = setPieces(pieces);
-		reload(ctx);
-		var currentPiece = pickRandomPiece();
-		drawPiece(ctx, currentPiece);
 
+		for (var i = 0; i < mainHeight * mainWidth; i++) {
+			field[i] = 0;
+		}
+		for (var i = 0; i < 10; i++) { // condition to stop the game
+			reload(ctx);
+			var currentPiece = pickRandomPiece(pieces);
+			gameCycle(ctx, currentPiece);
+		}
+	}
+}
+
+function gameCycle(ctx, currentPiece) {
+	if (!endOfCycle) {
 		setInterval(function() {
 			dropPiece(ctx, currentPiece);
 		}, step * 1000);
@@ -34,6 +46,31 @@ function draw() {
 		document.addEventListener("keydown", function(event) {
 			keydownActions(event, ctx, currentPiece);
 		}, false);
+	} else {
+		endOfCycle = false;
+		return;
+	}
+}
+
+function drawField(ctx, field) {
+	for (i = 0; i < field.length; i++) {
+		if (field[i] != 0) {
+			var x = i % mainWidth, //	Converting linear coordinate to (x,y)
+				y = (i - x) / mainWidth;
+			ctx.fillStyle = field[i];
+			roundRect(ctx, x * dotSize, y * dotSize, dotSize, dotSize, dotSize / 4, true, true);
+		}
+	}
+}
+
+function savePiece(piece, field) {
+	for (var i = 0; i < piece.body.length; i++) {
+		for (var j = 0; j < piece.body[i].length; j++) {
+			if (piece.body[i][j] != 0) {
+				var idx = (piece.y + piece.edges.upper + i) * mainWidth + (piece.x + j); //	Converting from (x,y) to linear
+				field[idx] = piece.color;
+			}
+		}
 	}
 }
 
@@ -41,6 +78,8 @@ function dropPiece(ctx, piece) {
 	piece.y += 1;
 	if (!checkEdge("down", piece)) {
 		piece.y -= 1;
+		savePiece(piece, field);
+		endOfCycle = true;
 	}
 	reload(ctx);
 	drawPiece(ctx, piece);
@@ -105,8 +144,8 @@ function findEdges(piece) {
 		right: 0,
 		left: null,
 	};
-	for (i = 0; i < piece.body.length; i++) {
-		for (j = 0; j < piece.body[i].length; j++) {
+	for (var i = 0; i < piece.body.length; i++) {
+		for (var j = 0; j < piece.body[i].length; j++) {
 			if (piece.body[i][j] != 0) {
 				if (edges.upper == null) {
 					edges.upper = Number(i);
@@ -131,31 +170,24 @@ function setPieces(pieces) {
 		pieces[piece].edges = findEdges(pieces[piece]);
 		switch (pieces[piece].name) {
 			case "i":
-				pieces[piece].size = 4;
 				pieces[piece].color = "cyan";
 				break;
 			case "j":
-				pieces[piece].size = 3;
 				pieces[piece].color = "blue";
 				break;
 			case "l":
-				pieces[piece].size = 3;
 				pieces[piece].color = "orange";
 				break;
 			case "o":
-				pieces[piece].size = 2;
 				pieces[piece].color = "pink";
 				break;
 			case "s":
-				pieces[piece].size = 3;
 				pieces[piece].color = "green";
 				break;
 			case "t":
-				pieces[piece].size = 3;
 				pieces[piece].color = "purple";
 				break;
 			case "z":
-				pieces[piece].size = 3;
 				pieces[piece].color = "red";
 				break;
 		}
@@ -197,6 +229,7 @@ function reload(ctx) {
 	ctx.fillStyle = "white";
 	ctx.fillRect(0, 0, mainWidth * dotSize, mainHeight * dotSize);
 	drawGrid(ctx);
+	drawField(ctx, field);
 }
 
 //	This function is returning piece with specified name and rotStage
