@@ -1,9 +1,8 @@
 var dotSize = 20;
 var mainWidth = 10;
 var mainHeight = 20;
-var step = 1;
+var step = 0.5;
 var field = [];
-var endOfCycle = false;
 var KEY = {
 	ESC: 27,
 	SPACE: 32,
@@ -29,34 +28,55 @@ function draw() {
 		for (var i = 0; i < mainHeight * mainWidth; i++) {
 			field[i] = 0;
 		}
-		for (var i = 0; i < 10; i++) { // condition to stop the game
-			reload(ctx);
-			var currentPiece = pickRandomPiece(pieces);
-			gameCycle(ctx, currentPiece);
-		}
+
+		createNewPiece(ctx);
 	}
 }
 
-function gameCycle(ctx, currentPiece) {
-	if (!endOfCycle) {
-		setInterval(function() {
-			dropPiece(ctx, currentPiece);
-		}, step * 1000);
-
-		document.addEventListener("keydown", function(event) {
-			keydownActions(event, ctx, currentPiece);
-		}, false);
-	} else {
-		endOfCycle = false;
-		return;
+function checkField(piece, field) {
+	for (var i = 0; i < piece.body.length; i++) {
+		for (var j = 0; j < piece.body[i].length; j++) {
+			if (piece.body[i][j] != 0) {
+				var idx = (piece.y + piece.edges.upper + i) * mainWidth + (piece.x + j); //	Converting from (x,y) to linear
+				if (field[idx] !== 0) {
+					return false
+				}
+			}
+		}
 	}
+	return true;
+}
+
+
+function createNewPiece(ctx) {
+	var currentPiece = pickRandomPiece(pieces);
+	reload(ctx);
+	gameCycle(ctx, currentPiece)
+}
+
+function gameCycle(ctx, currentPiece) {
+
+	var timerID = setInterval(function() {
+		var returnValue = dropPiece(ctx, currentPiece);
+		if (returnValue === true) {
+			currentPiece.removedPiece = true;
+			clearInterval(timerID);
+			createNewPiece(ctx);
+		}
+	}, step * 1000);
+
+	document.addEventListener("keydown", function(event) {
+		if (!currentPiece.removedPiece) {
+			keydownActions(event, ctx, currentPiece);
+		}
+	}, false);
 }
 
 function drawField(ctx, field) {
 	for (i = 0; i < field.length; i++) {
 		if (field[i] != 0) {
-			var x = i % mainWidth, //	Converting linear coordinate to (x,y)
-				y = (i - x) / mainWidth;
+			var x = i % mainWidth; //	Converting linear coordinate to (x,y)
+			var y = (i - x) / mainWidth;
 			ctx.fillStyle = field[i];
 			roundRect(ctx, x * dotSize, y * dotSize, dotSize, dotSize, dotSize / 4, true, true);
 		}
@@ -75,15 +95,16 @@ function savePiece(piece, field) {
 }
 
 function dropPiece(ctx, piece) {
+	var endOfCycle = false;
 	piece.y += 1;
-	if (!checkEdge("down", piece)) {
+	if (!checkEdge("down", piece) || !checkField(piece, field)) {
 		piece.y -= 1;
 		savePiece(piece, field);
 		endOfCycle = true;
 	}
 	reload(ctx);
 	drawPiece(ctx, piece);
-	//	currentPiece = piece;
+	return endOfCycle;
 }
 
 function keydownActions(event, ctx, currentPiece) {
@@ -199,26 +220,31 @@ function movePiece(dir, piece) {
 	var newPiece = {};
 	newPiece.x = piece.x;
 	newPiece.y = piece.y;
+	newPiece.body = [];
+	for (var i = 0; i < piece.body.length; i++) {
+		newPiece.body[i] = piece.body[i];
+	}
 	newPiece.edges = {};
+	newPiece.edges.upper = piece.edges.upper;
 	newPiece.edges.left = piece.edges.left;
 	newPiece.edges.right = piece.edges.right;
 	newPiece.edges.lower = piece.edges.lower;
 	switch (dir) {
 		case "left":
 			newPiece.x -= 1;
-			if (checkEdge(dir, newPiece)) {
+			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
 				piece.x -= 1;
 			}
 			break;
 		case "right":
 			newPiece.x += 1;
-			if (checkEdge(dir, newPiece)) {
+			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
 				piece.x += 1;
 			}
 			break;
 		case "down":
 			newPiece.y += 1;
-			if (checkEdge(dir, newPiece)) {
+			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
 				piece.y += 1;
 			}
 			break;
@@ -304,7 +330,7 @@ function rotatePiece(piece) {
 	}
 	newPiece.x = piece.x;
 	newPiece.y = piece.y;
-	if (!checkAllEdges(newPiece)) {
+	if (!checkAllEdges(newPiece) || !checkField(newPiece, field)) {
 		return;
 	}
 	piece.rotStage = newPiece.rotStage;
