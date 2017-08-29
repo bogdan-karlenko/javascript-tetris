@@ -25,11 +25,31 @@ function draw() {
 		ctx.canvas.height = mainHeight * dotSize;
 		pieces = setPieces(pieces);
 
-		for (var i = 0; i < mainHeight * mainWidth; i++) {
-			field[i] = 0;
-		}
+		field.length = mainHeight * mainWidth;
+		field.fill(0);
 
 		createNewPiece(ctx);
+	}
+}
+
+function removeLine(field) {
+	for (var line = mainHeight - 1; line >= 0; line--) {
+		var sum = 0;
+		for (var row = 0; row < mainWidth; row++) {
+			var idx = line * mainWidth + row;
+			console.log(idx);
+			if (field[idx] !== 0) {
+				sum += 1;
+			}
+		}
+		if (sum === mainWidth) {
+			field.splice(line * mainWidth, mainWidth);
+			for (var i = 0; i < mainWidth; i++) {
+				field.unshift(0);
+			}
+			line += 1;
+		}
+
 	}
 }
 
@@ -50,6 +70,7 @@ function checkField(piece, field) {
 
 function createNewPiece(ctx) {
 	var currentPiece = pickRandomPiece(pieces);
+	removeLine(field);
 	reload(ctx);
 	gameCycle(ctx, currentPiece)
 }
