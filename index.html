@@ -8,14 +8,16 @@
   <meta name="description" content="javascript tetris by b.karlenko">
 
   <link rel="stylesheet" href="styles.css">
-  <script type="text/javascript" src="js/tetris.js"></script>
+  <script src="scripts/require.js"></script> <!-- note, no 'data-main' -->
+  <script>require( ['scripts/tetris'], function() { draw();} );</script>
+  <!--<script type="text/javascript" src="scripts/tetris.js"></script>-->
 
 </head>
 
 <body onload="draw();">
   <div id="main-table">
-  <table align = "center">
-  <tr height = "50px"></tr>
+    <table align = "center">
+      <tr height = "50px"></tr>
       <td width = "150px"></td>
       <td>
         <div id="tetris">
@@ -27,7 +29,7 @@
      <td>
       <div id= "stats"> 
        <canvas id = "main-stats" width="10" height="10">
-       Canvas error.
+         Canvas error.
        </canvas>
      </div>
    </td>  
