@@ -1,7 +1,13 @@
 var dotSize = 20;
 var mainWidth = 10;
 var mainHeight = 20;
-var step = 0.5;
+var speed = {
+	changeTime: 60, //time before speed up (sec)
+	step: 0.5, //time between steps of piece drop (sec)
+	id: 0, //number of the speed
+}
+var firstStart = true;
+var playing = false;
 var field = [];
 var KEY = {
 	ESC: 27,
@@ -26,10 +32,47 @@ function draw() {
 		pieces = setPieces(pieces);
 
 		field.length = mainHeight * mainWidth;
-		field.fill(0);
+		clearField(field);
 
-		createNewPiece(ctx);
+		document.addEventListener("keydown", function(event) {
+			switch (event.keyCode) {
+				case KEY.SPACE:
+					if (playing === false) {
+						if (firstStart) {
+							firstStart = false;
+							playing = true;
+							clearField(field);
+							createNewPiece(ctx);
+							var startSpeed = speed.step;
+							var speedTimer = setInterval(function() {
+								if (speed.id === 9) {
+									clearInterval(speedTimer);
+								} else {
+									speed.id += 1;
+									speed.step = startSpeed - (startSpeed - 0.05) / 9 * speed.id;
+									console.log (speed.step);
+								}
+							}, speed.changeTime * 1000);
+						} else {
+							location.reload(true);
+						}
+					}
+					break;
+				case KEY.ESC:
+					playing = false;
+					clearField(field);
+					location.reload(true);
+					break;
+			}
+		}, false);
+
+		drawGrid(ctx);
+
 	}
+}
+
+function clearField(field) {
+	field.fill(0);
 }
 
 function removeLine(field) {
@@ -37,7 +80,6 @@ function removeLine(field) {
 		var sum = 0;
 		for (var row = 0; row < mainWidth; row++) {
 			var idx = line * mainWidth + row;
-			console.log(idx);
 			if (field[idx] !== 0) {
 				sum += 1;
 			}
@@ -69,10 +111,19 @@ function checkField(piece, field) {
 
 
 function createNewPiece(ctx) {
-	var currentPiece = pickRandomPiece(pieces);
-	removeLine(field);
-	reload(ctx);
-	gameCycle(ctx, currentPiece)
+	if (playing) {
+		var currentPiece = pickRandomPiece(pieces);
+		if (!checkField(currentPiece, field)) {
+			playing = false;
+			//			location.reload(true);
+			//			drawField(ctx, field);
+			return;
+		}
+		removeLine(field);
+		reload(ctx);
+		gameCycle(ctx, currentPiece);
+	}
+
 }
 
 function gameCycle(ctx, currentPiece) {
@@ -84,7 +135,7 @@ function gameCycle(ctx, currentPiece) {
 			clearInterval(timerID);
 			createNewPiece(ctx);
 		}
-	}, step * 1000);
+	}, speed.step * 1000);
 
 	document.addEventListener("keydown", function(event) {
 		if (!currentPiece.removedPiece) {
@@ -116,16 +167,18 @@ function savePiece(piece, field) {
 }
 
 function dropPiece(ctx, piece) {
-	var endOfCycle = false;
-	piece.y += 1;
-	if (!checkEdge("down", piece) || !checkField(piece, field)) {
-		piece.y -= 1;
-		savePiece(piece, field);
-		endOfCycle = true;
+	if (playing) {
+		var endOfCycle = false;
+		piece.y += 1;
+		if (!checkEdge("down", piece) || !checkField(piece, field)) {
+			piece.y -= 1;
+			savePiece(piece, field);
+			endOfCycle = true;
+		}
+		reload(ctx);
+		drawPiece(ctx, piece);
+		return endOfCycle;
 	}
-	reload(ctx);
-	drawPiece(ctx, piece);
-	return endOfCycle;
 }
 
 function keydownActions(event, ctx, currentPiece) {
@@ -238,37 +291,39 @@ function setPieces(pieces) {
 }
 
 function movePiece(dir, piece) {
-	var newPiece = {};
-	newPiece.x = piece.x;
-	newPiece.y = piece.y;
-	newPiece.body = [];
-	for (var i = 0; i < piece.body.length; i++) {
-		newPiece.body[i] = piece.body[i];
-	}
-	newPiece.edges = {};
-	newPiece.edges.upper = piece.edges.upper;
-	newPiece.edges.left = piece.edges.left;
-	newPiece.edges.right = piece.edges.right;
-	newPiece.edges.lower = piece.edges.lower;
-	switch (dir) {
-		case "left":
-			newPiece.x -= 1;
-			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
-				piece.x -= 1;
-			}
-			break;
-		case "right":
-			newPiece.x += 1;
-			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
-				piece.x += 1;
-			}
-			break;
-		case "down":
-			newPiece.y += 1;
-			if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
-				piece.y += 1;
-			}
-			break;
+	if (playing) {
+		var newPiece = {};
+		newPiece.x = piece.x;
+		newPiece.y = piece.y;
+		newPiece.body = [];
+		for (var i = 0; i < piece.body.length; i++) {
+			newPiece.body[i] = piece.body[i];
+		}
+		newPiece.edges = {};
+		newPiece.edges.upper = piece.edges.upper;
+		newPiece.edges.left = piece.edges.left;
+		newPiece.edges.right = piece.edges.right;
+		newPiece.edges.lower = piece.edges.lower;
+		switch (dir) {
+			case "left":
+				newPiece.x -= 1;
+				if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
+					piece.x -= 1;
+				}
+				break;
+			case "right":
+				newPiece.x += 1;
+				if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
+					piece.x += 1;
+				}
+				break;
+			case "down":
+				newPiece.y += 1;
+				if (checkEdge(dir, newPiece) && checkField(newPiece, field)) {
+					piece.y += 1;
+				}
+				break;
+		}
 	}
 }
 
@@ -309,11 +364,13 @@ function drawGrid(ctx) {
 
 //	This function is drawing chosen piece starting at (x,y)
 function drawPiece(ctx, piece) {
-	ctx.fillStyle = piece.color;
-	for (i = 0; i < piece.body.length; i++) {
-		for (j = 0; j < piece.body[i].length; j++) {
-			if (piece.body[i][j] != 0) {
-				roundRect(ctx, (j + piece.x) * dotSize, (i + piece.y) * dotSize, dotSize, dotSize, dotSize / 4, true, true);
+	if (playing) {
+		ctx.fillStyle = piece.color;
+		for (i = 0; i < piece.body.length; i++) {
+			for (j = 0; j < piece.body[i].length; j++) {
+				if (piece.body[i][j] != 0) {
+					roundRect(ctx, (j + piece.x) * dotSize, (i + piece.y) * dotSize, dotSize, dotSize, dotSize / 4, true, true);
+				}
 			}
 		}
 	}
@@ -343,27 +400,29 @@ function pickRandomPiece() {
 
 //	This function is rotating current piece one step forward
 function rotatePiece(piece) {
-	var newPiece = null;
-	if (piece.rotStage === 3) {
-		newPiece = findPiece(piece.name, 0);
-	} else {
-		newPiece = findPiece(piece.name, piece.rotStage + 1);
+	if (playing) {
+		var newPiece = null;
+		if (piece.rotStage === 3) {
+			newPiece = findPiece(piece.name, 0);
+		} else {
+			newPiece = findPiece(piece.name, piece.rotStage + 1);
+		}
+		newPiece.x = piece.x;
+		newPiece.y = piece.y;
+		if (!checkAllEdges(newPiece) || !checkField(newPiece, field)) {
+			return;
+		}
+		piece.rotStage = newPiece.rotStage;
+		piece.body = [];
+		for (var i = 0; i < newPiece.body.length; i++) {
+			piece.body[i] = newPiece.body[i];
+		}
+		piece.edges = {};
+		piece.edges.upper = newPiece.edges.upper;
+		piece.edges.lower = newPiece.edges.lower;
+		piece.edges.left = newPiece.edges.left;
+		piece.edges.right = newPiece.edges.right;
 	}
-	newPiece.x = piece.x;
-	newPiece.y = piece.y;
-	if (!checkAllEdges(newPiece) || !checkField(newPiece, field)) {
-		return;
-	}
-	piece.rotStage = newPiece.rotStage;
-	piece.body = [];
-	for (var i = 0; i < newPiece.body.length; i++) {
-		piece.body[i] = newPiece.body[i];
-	}
-	piece.edges = {};
-	piece.edges.upper = newPiece.edges.upper;
-	piece.edges.lower = newPiece.edges.lower;
-	piece.edges.left = newPiece.edges.left;
-	piece.edges.right = newPiece.edges.right;
 }
 
 //	This function is drawing rectangle with rounded corners starting at (x,y)
