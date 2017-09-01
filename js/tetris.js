@@ -8,6 +8,7 @@ var speed = {
 }
 var firstStart = true;
 var playing = false;
+var linesOut = 0;
 var field = [];
 var KEY = {
 	ESC: 27,
@@ -25,14 +26,19 @@ var KEY = {
 //	This function runs when current page is loaded
 function draw() {
 	var main = document.getElementById("main-ttrs");
-	if (main.getContext) {
+	var stats = document.getElementById("main-stats");
+	if (main.getContext && stats.getContext) {
+		statsCtx = stats.getContext("2d");
 		ctx = main.getContext("2d");
 		ctx.canvas.width = mainWidth * dotSize;
 		ctx.canvas.height = mainHeight * dotSize;
+		statsCtx.canvas.width = 150;
+		statsCtx.canvas.height = 100;
 		pieces = setPieces(pieces);
 
 		field.length = mainHeight * mainWidth;
 		clearField(field);
+		statsDraw(statsCtx, "stopped");
 
 		document.addEventListener("keydown", function(event) {
 			switch (event.keyCode) {
@@ -50,7 +56,7 @@ function draw() {
 								} else {
 									speed.id += 1;
 									speed.step = startSpeed - (startSpeed - 0.05) / 9 * speed.id;
-									console.log (speed.step);
+									statsDraw(statsCtx, "stats");
 								}
 							}, speed.changeTime * 1000);
 						} else {
@@ -71,6 +77,36 @@ function draw() {
 	}
 }
 
+function statsDraw(ctx, state) {
+	switch (state) {
+		case "stopped":
+			ctx.font = "22px Georgia bold";
+			ctx.fillStyle = "red";
+			ctx.fillText("Press Space", 20, 25);
+			ctx.fillText("to start", 45, 50);
+			break;
+		case "clear":
+			ctx.fillStyle = "white";
+			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			break;
+		case "stats":
+			statsDraw(ctx, "clear");
+			ctx.font = "18px Georgia bold";
+			ctx.fillStyle = "black";
+			ctx.fillText("Speed: " + speed.id, 20, 20);
+			ctx.fillText("Lines: " + linesOut, 20, 40);
+			break;
+		case "gameover":
+		statsDraw(ctx, "clear");
+			ctx.font = "22px Georgia bold";
+			ctx.fillStyle = "red";
+			ctx.fillText("Game Over", 25, 25);
+			ctx.fillText("Press Esc/Space", 5, 50);
+			ctx.fillText("to restart", 30, 75);
+			break;
+	}
+}
+
 function clearField(field) {
 	field.fill(0);
 }
@@ -85,6 +121,8 @@ function removeLine(field) {
 			}
 		}
 		if (sum === mainWidth) {
+			linesOut += 1;
+			statsDraw(statsCtx, "stats");
 			field.splice(line * mainWidth, mainWidth);
 			for (var i = 0; i < mainWidth; i++) {
 				field.unshift(0);
@@ -112,9 +150,11 @@ function checkField(piece, field) {
 
 function createNewPiece(ctx) {
 	if (playing) {
+		statsDraw(statsCtx, "stats");
 		var currentPiece = pickRandomPiece(pieces);
 		if (!checkField(currentPiece, field)) {
 			playing = false;
+			statsDraw(statsCtx, "gameover");
 			//			location.reload(true);
 			//			drawField(ctx, field);
 			return;
@@ -138,7 +178,7 @@ function gameCycle(ctx, currentPiece) {
 	}, speed.step * 1000);
 
 	document.addEventListener("keydown", function(event) {
-		if (!currentPiece.removedPiece) {
+		if (playing && !currentPiece.removedPiece) {
 			keydownActions(event, ctx, currentPiece);
 		}
 	}, false);
@@ -393,7 +433,7 @@ function pickRandomPiece() {
 	}
 	randomPiece.rotStage = pieces[idx].rotStage;
 	randomPiece.color = pieces[idx].color;
-	randomPiece.x = Math.floor(mainWidth / 2 - 2);
+	randomPiece.x = Math.floor(mainWidth / 2 - 1);
 	randomPiece.y = 0 - randomPiece.edges.upper;
 	return randomPiece;
 }

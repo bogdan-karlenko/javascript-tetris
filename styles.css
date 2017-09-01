@@ -1,9 +1,26 @@
 #tetris {
 	text-align: center;
-	border: 1px solid black;
+	border: 0px solid black;
+}
+
+#stats {
+	text-align: center;
+}
+
+#main-table {
+
 }
 
 #main-ttrs {
 	border: 1px solid black;
+}
+
+#main-stats {
+	border: 0px solid black;
+}
+
+td {	
+	vertical-align: top;
 	text-align: center;
+	border: 0px solid black;
 }
