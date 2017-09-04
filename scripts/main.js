@@ -1,3 +1,4 @@
-require(["tetris"], function(tetris) {
-	tetris.draw();
-});
+require(["tetris"]);
+//, function(tetris) {
+//	tetris.draw();
+//});
